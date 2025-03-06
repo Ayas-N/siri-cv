@@ -24,6 +24,8 @@ bproc.camera.set_resolution(512, 512)
 # read the camera positions file and convert into homogeneous camera-world transformation
 with open(args.camera, "r") as f:
     for line in f.readlines():
+        # Two poses from camera positions, one on 0 -13.741 4.1242, rotation 0, 0
+        # Other pose is 1.9488 -6.5202 0.23291, rotation 1.84, 0.5
         line = [float(x) for x in line.split()]
         position, euler_rotation = line[:3], line[3:6]
         matrix_world = bproc.math.build_transformation_mat(position, euler_rotation)
@@ -34,7 +36,7 @@ bproc.renderer.enable_normals_output()
 bproc.renderer.enable_depth_output(activate_antialiasing=False)
 
 # render the whole pipeline
-data = bproc.renderer.render()
+data = bproc.renderer.render()  
 
 # write the data to a .hdf5 container
 bproc.writer.write_hdf5(args.output_dir, data)
