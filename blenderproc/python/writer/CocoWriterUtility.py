@@ -235,7 +235,7 @@ class _CocoWriterUtility:
                                                                            mask_encoding_format)
                     if annotation is not None:
                         annotations.append(annotation)
-
+                        
         new_coco_annotations = {
             "info": info,
             "licenses": licenses,

@@ -24,22 +24,9 @@ A procedural Blender pipeline for photorealistic rendering.
 
 
 ## Installation
-
-### Via pip
-
-The simplest way to install blenderproc is via pip:
-
-```bash
-pip install blenderproc
-```
-
 ### Via git
 
-Alternatively, if you need to make changes to blenderproc or you want to make use of the most recent version on the main-branch, clone the repository:
-
-```bash
-git clone https://github.com/DLR-RM/BlenderProc
-```
+I directly cloned the Blenderproc repository, so clone this repository for access to the package.
 
 To still make use of the blenderproc command and therefore use blenderproc anywhere on your system, make a local pip installation:
 
@@ -48,203 +35,25 @@ cd BlenderProc
 pip install -e .
 ```
 
-## Usage
-
-BlenderProc has to be run inside the blender python environment, as only there we can access the blender API. 
-Therefore, instead of running your script with the usual python interpreter, the command line interface of BlenderProc has to be used.
+## Synthetic Data Generation
+To run the synthetic data generation first run:
 
 ```bash
-blenderproc run <your_python_script>
+blenderproc run generate.py
 ```
 
-In general, one run of your script first loads or constructs a 3D scene, then sets some camera poses inside this scene and renders different types of images (RGB, distance, semantic segmentation, etc.) for each of those camera poses.
-Usually, you will run your script multiple times, each time producing a new scene and rendering e.g. 5-20 images from it.
-With a little more experience, it is also possible to change scenes during a single script call, read [here](docs/tutorials/key_frames.md#render-multiple-times) how this is done.
+This will runs the script that loads up the ```dune.blend``` blender scene file. It then randomises the camera location and angle whilst maintaining focus on the cube. 
 
-## Quickstart
+Images that are generated will be placed in the ```coco_data/images``` directory. 
 
-You can test your BlenderProc pip installation by running
+The bounding boxes from blenderproc are generated in the ```coco_annotations.json``` file, but this format isn't suitable for the Ultralytics package which we are using to run the YOLO model. 
+
+To generate labels with the correct format, run:
 
 ```bash
-blenderproc quickstart
+python json_parser.py
 ```
 
-This is an alias to `blenderproc run quickstart.py` where `quickstart.py` is:
+Which generates bounding boxes for each corresponding image in .txt form in the ```coco_data/labels``` directory.
 
-```python
-import blenderproc as bproc
-import numpy as np
-
-bproc.init()
-
-# Create a simple object:
-obj = bproc.object.create_primitive("MONKEY")
-
-# Create a point light next to it
-light = bproc.types.Light()
-light.set_location([2, -2, 0])
-light.set_energy(300)
-
-# Set the camera to be in front of the object
-cam_pose = bproc.math.build_transformation_mat([0, -5, 0], [np.pi / 2, 0, 0])
-bproc.camera.add_camera_pose(cam_pose)
-
-# Render the scene
-data = bproc.renderer.render()
-
-# Write the rendering into an hdf5 file
-bproc.writer.write_hdf5("output/", data)
-```
-
-BlenderProc creates the specified scene and renders the image into `output/0.hdf5`.
-To visualize that image, simply call:
-
-```bash
-blenderproc vis hdf5 output/0.hdf5
-```
-
-Thats it! You rendered your first image with BlenderProc!
-
-### Debugging in the Blender GUI
-
-To understand what is actually going on, BlenderProc has the great feature of visualizing everything inside the blender UI.
-To do so, simply call your script with the `debug` instead of `run` subcommand:
-```bash
-blenderproc debug quickstart.py
-```
-*Make sure that `quickstart.py` actually exists in your working directory.*
-
-Now the Blender UI opens up, the scripting tab is selected and the correct script is loaded.
-To start the BlenderProc pipeline, one now just has to press `Run BlenderProc` (see red circle in image).
-As in the normal mode, print statements are still printed to the terminal.
-
-<p align="center">
-<img src="images/debug.jpg" alt="Front readme image" width=500>
-</p>
-
-The pipeline can be run multiple times, as in the beginning of each run the scene is cleared.
-
-### Breakpoint-Debugging in IDEs
-
-As blenderproc runs in blenders separate python environment, debugging your blenderproc script cannot be done in the same way as with any other python script.
-Therefore, remote debugging is necessary, which is explained for vscode and PyCharm in the following:
-
-#### Debugging with vscode
-
-First, install the `debugpy` package in blenders python environment.
-
-```
-blenderproc pip install debugpy
-```
-
-Now add the following configuration to your vscode [launch.json](https://code.visualstudio.com/docs/python/debugging#_initialize-configurations).
-
-```json
-{                        
-    "name": "Attach",
-    "type": "python",
-    "request": "attach",
-    "connect": {
-        "host": "localhost",
-        "port": 5678
-    }
-}
-```
-
-Finally, add the following lines to the top (after the imports) of your blenderproc script which you want to debug.
-
-```python
-import debugpy
-debugpy.listen(5678)
-debugpy.wait_for_client()
-```
-
-Now run your blenderproc script as usual via the CLI and then start the added "Attach" configuration in vscode.
-You are now able to add breakpoints and go through the execution step by step.
-
-#### Debugging with PyCharm Professional
-
-In Pycharm, go to `Edit configurations...` and create a [new configuration](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html#remote-debug-config) based on `Python Debug Server`.
-The configuration will show you, specifically for your version, which pip package to install and which code to add into the script.
-The following assumes Pycharm 2021.3:
-
-First, install the `pydevd-pycharm` package in blenders python environment.
-
-```
-blenderproc pip install pydevd-pycharm~=212.5457.59
-```
-
-Now, add the following code to the top (after the imports) of your blenderproc script which you want to debug.
-
-```python
-import pydevd_pycharm
-pydevd_pycharm.settrace('localhost', port=12345, stdoutToServer=True, stderrToServer=True)
-```
-
-Then, first run your `Python Debug Server` configuration in PyCharm and then run your blenderproc script as usual via the CLI.
-PyCharm should then go in debug mode, blocking the next code line.
-You are now able to add breakpoints and go through the execution step by step.
-
-## What to do next?
-
-As you now ran your first BlenderProc script, your ready to learn the basics:
-
-### Tutorials
-
-Read through the tutorials, to get to know with the basic principles of how BlenderProc is used:
-
-1. [Loading and manipulating objects](docs/tutorials/loader.md)
-2. [Configuring the camera](docs/tutorials/camera.md)
-3. [Rendering the scene](docs/tutorials/renderer.md)
-4. [Writing the results to file](docs/tutorials/writer.md)
-5. [How key frames work](docs/tutorials/key_frames.md)
-6. [Positioning objects via the physics simulator](docs/tutorials/physics.md)
-
-### Examples
-
-We provide a lot of [examples](examples/README.md) which explain all features in detail and should help you understand how BlenderProc works. Exploring our examples is the best way to learn about what you can do with BlenderProc. We also provide support for some datasets.
-
-* [Basic scene](examples/basics/basic/README.md): Basic example, this is the ideal place to start for beginners
-* [Camera sampling](examples/basics/camera_sampling/README.md): Sampling of different camera positions inside of a shape with constraints for the rotation.
-* [Object manipulation](examples/basics/entity_manipulation/README.md): Changing various parameters of objects.
-* [Material manipulation](examples/basics/material_manipulation/README.md): Material selecting and manipulation.
-* [Physics positioning](examples/basics/physics_positioning/README.md): Enabling simple simulated physical interactions between objects in the scene.
-* [Semantic segmentation](examples/basics/semantic_segmentation/README.md): Generating semantic segmentation labels for a given scene.
-* [BOP Challenge](README_BlenderProc4BOP.md): Generate the pose-annotated data used at the BOP Challenge 2020
-* [COCO annotations](examples/advanced/coco_annotations/README.md): Write COCO annotations to a .json file for selected objects in the scene.
-
-and much more, see our [examples](examples/README.md) for more details.
-
-
-## Contributions
-
-Found a bug? help us by reporting it. Want a new feature in the next BlenderProc release? Create an issue. Made something useful or fixed a bug? Start a PR. Check the [contributions guidelines](CONTRIBUTING.md).
-
-## Change log
-
-See our [change log](change_log.md). 
-
-## Citation 
-
-If you use BlenderProc in a research project, please cite as follows:
-
-```
-@article{Denninger2023, 
-    doi = {10.21105/joss.04901},
-    url = {https://doi.org/10.21105/joss.04901},
-    year = {2023},
-    publisher = {The Open Journal}, 
-    volume = {8},
-    number = {82},
-    pages = {4901}, 
-    author = {Maximilian Denninger and Dominik Winkelbauer and Martin Sundermeyer and Wout Boerdijk and Markus Knauer and Klaus H. Strobl and Matthias Humt and Rudolph Triebel},
-    title = {BlenderProc2: A Procedural Pipeline for Photorealistic Rendering}, 
-    journal = {Journal of Open Source Software}
-} 
-```
-
----
-
-<div align="center">
-  <a href="https://www.dlr.de/EN/Home/home_node.html"><img src="images/logo.svg" hspace="3%" vspace="60px"></a>
-</div>
+## YOLO Model
